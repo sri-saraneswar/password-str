@@ -49,8 +49,8 @@ The system actively evaluates passwords against the following sophisticated metr
 
 1. **Clone the repository:**
    ```bash
-   'git clone https://github.com/sri-saraneswar/password-str.git'
-   'cd password-str'
+   git clone https://github.com/sri-saraneswar/password-str.git
+   cd password-str
 
    ```
 
