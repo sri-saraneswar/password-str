@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Attack Simulation System</title>
+    <style>
+        :root {
+            --bg-dark: #0a0e17;
+            --card-bg: #111827;
+            --accent-green: #10b981;
+            --accent-green-hover: #059669;
+            --text-light: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+
+            --color-weak: #ef4444;
+            --color-moderate: #f97316;
+            --color-strong: #eab308;
+            --color-very-strong: #22c55e;
+            --color-info: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            line-height: 1.6;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        #health-banner {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 5px;
+            display: none;
+            transition: opacity 0.5s;
+        }
+
+        .health-success {
+            background-color: rgba(34, 197, 94, 0.1);
+            color: var(--color-very-strong);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .health-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-weak);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--accent-green);
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+
+        /* Input Section */
+        .input-group {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 16px 120px 16px 20px;
+            font-size: 1.25rem;
+            font-family: "Courier New", Courier, monospace;
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-light);
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="password"]:focus,
+        input[type="text"]:focus {
+            border-color: var(--accent-green);
+        }
+
+        .input-actions {
+            position: absolute;
+            right: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5px;
+        }
+
+        .icon-btn:hover {
+            color: var(--text-light);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--border-color);
+            color: var(--text-light);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: #4b5563;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-green);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-green-hover);
+        }
+
+        /* Status & Meter */
+        .status-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 5px;
+        }
+
+        #status-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .score-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .strength-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .meter-container {
+            height: 12px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--border-color);
+            transition: width 0.5s ease-out, background-color 0.5s ease-out;
+            border-radius: 6px;
+        }
+
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .metric-card {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--accent-green);
+        }
+
+        /* Sections Grid */
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .section-card {
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* Lists */
+        .vuln-list,
+        .suggestion-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .vuln-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .vuln-item.danger {
+            color: #fca5a5;
+        }
+
+        .vuln-item.safe {
+            color: #86efac;
+        }
+
+        .suggestion-card {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid var(--color-info);
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .suggestion-icon {
+            color: var(--color-info);
+            font-size: 1.2rem;
+            margin-top: 2px;
+        }
+
+        /* Attack Summary Grid */
+        .attack-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .attack-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .attack-safe {
+            color: var(--color-very-strong);
+        }
+
+        .attack-vuln {
+            color: var(--color-weak);
+            font-weight: bold;
+        }
+
+        .form-error {
+            color: var(--color-weak);
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: auto;
+            width: 100%;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading-state {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        /* --- SIDE BY SIDE COMPARISON CSS --- */
+        #btn-improve {
+            display: none;
+            width: 100%;
+            margin-top: 20px;
+            padding: 15px;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, var(--accent-green), #22c55e);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); box-shadow: 0 4px 25px rgba(16, 185, 129, 0.5); }
+            100% { transform: scale(1); }
+        }
+
+        #btn-improve:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        #btn-improve.loading {
+            opacity: 0.7;
+            cursor: wait;
+            animation: none;
+        }
+
+        #comparison-section {
+            display: none;
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px dashed var(--border-color);
+            flex-direction: column;
+            gap: 20px;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        #comparison-section.show {
+            display: flex;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .comp-banner {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid var(--accent-green);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .comp-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .comp-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .comp-card.original { border-left: 5px solid var(--color-weak); }
+        .comp-card.improved { border-left: 5px solid var(--color-very-strong); }
+
+        .comp-card-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .comp-pwd-large {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.4rem;
+            word-break: break-all;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .comp-stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .comp-stat-val { font-weight: bold; }
+
+        .comp-bar-container {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .comp-bar-wrapper {
+            position: relative;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .comp-bar-fill {
+            height: 100%;
+            width: 0;
+            transition: width 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .attack-comp-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .attack-comp-col {
+            font-size: 0.8rem;
+            padding: 8px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 6px;
+        }
+
+        .comp-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .comp-grid { grid-template-columns: 1fr; }
+            .attack-comp-grid { grid-template-columns: 1fr 1fr; }
+        }
+    
+        /* Tabs Navigation */
+        .tabs-container {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.2);
+            color: var(--text-muted);
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn:hover {
+            color: var(--text-light);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .tab-btn.active {
+            color: var(--accent-green);
+            background: rgba(16, 185, 129, 0.05);
+            border-bottom: 3px solid var(--accent-green);
+        }
+        .tab-pane {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Tab 2 Specific CSS */
+        .manual-comp-inputs {
+            display: grid;
+            grid-template-columns: 1fr 40px 1fr;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        @media (max-width: 768px) {
+            .manual-comp-inputs {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        .comp-person-box {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+        }
+        .swap-btn-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .swap-btn {
+            background: var(--border-color);
+            border: none;
+            color: var(--text-light);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            transition: all 0.3s;
+        }
+        .swap-btn:hover {
+            background: #4b5563;
+            transform: rotate(180deg);
+        }
+        .name-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--accent-green);
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 5px;
+            margin-bottom: 15px;
+            outline: none;
+            text-align: center;
+        }
+        .name-input:focus {
+            border-bottom-color: var(--accent-green);
+        }
+        .comp-pwd-input-wrapper {
+            position: relative;
+        }
+        .mini-strength-dot {
+            position: absolute;
+            right: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border-color);
+            transition: background-color 0.3s;
+        }
+        
+        .winner-banner {
+            text-align: center;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            animation: pulse-green 2s infinite;
+        }
+        .winner-banner.tie {
+            background: rgba(59, 130, 246, 0.15);
+            border: 2px solid var(--color-info);
+            color: var(--color-info);
+            animation: none;
+        }
+        
+        .comp2-card {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            transition: all 0.3s;
+        }
+        .comp2-card.winner {
+            border-color: var(--color-very-strong);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.1);
+            background: rgba(34, 197, 94, 0.05);
+        }
+        .comp2-card.loser {
+            border-color: var(--color-weak);
+        }
+        .comp2-card.tie {
+            border-color: var(--color-info);
+        }
+        
+        .comp2-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.95rem;
+        }
+        .comp2-table th, .comp2-table td {
+            padding: 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .comp2-table th:first-child, .comp2-table td:first-child {
+            text-align: left;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+        .winner-cell {
+            background: rgba(34, 197, 94, 0.1);
+            font-weight: bold;
+        }
+
+
+
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div id="health-banner">Checking backend connection...</div>
+
+        <h1>Terminal :: Password Security</h1>
+
+        <div class="tabs-container">
+            <button class="tab-btn active" id="tab-btn-1">Single Password Analysis</button>
+            <button class="tab-btn" id="tab-btn-2">Compare Two Passwords</button>
+        </div>
+
+        <!-- TAB 1 CONTENT -->
+        <div id="tab1-content" class="tab-pane active">
+
+
+        <div class="input-group">
+            <label for="password" style="display:none;">Password</label>
+            <div class="input-wrapper">
+                <input type="password" id="password" placeholder="Enter password to analyze..." autocomplete="off">
+                <div class="input-actions">
+                    <button class="icon-btn" id="toggle-pwd" title="Show/Hide">👁️</button>
+                    <button class="icon-btn" id="clear-pwd" title="Clear">✖️</button>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn btn-primary" id="generate-btn">🎲 Generate Strong Password</button>
+                <button class="btn" id="copy-btn">📋 Copy</button>
+            </div>
+        </div>
+
+        <!-- Always visible by default, populated with hyphens -->
+        <div id="results-area">
+            <div>
+                <div class="status-container">
+                    <div>
+                        <span id="strength-badge" class="strength-badge" style="color:var(--text-muted)">-</span>
+                        <span id="status-text" style="margin-left: 10px;">Awaiting input...</span>
+                    </div>
+                    <div class="score-display" id="score-val" style="color:var(--text-muted)">-</div>
+                </div>
+
+                <div class="meter-container">
+                    <div class="meter-fill" id="meter"></div>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Estimated Crack Time</div>
+                    <div class="metric-value" id="crack-time">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Entropy</div>
+                    <div class="metric-value" id="entropy">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Length</div>
+                    <div class="metric-value" id="pwd-length">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Character Set Size</div>
+                    <div class="metric-value" id="char-set">-</div>
+                </div>
+            </div>
+
+            <div class="details-grid">
+                <div class="section-card">
+                    <h3 class="section-title">⚠️ Vulnerabilities Detected</h3>
+                    <div class="content-area" id="vuln-area">
+                        <ul class="vuln-list" id="vuln-list"></ul>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">🛡️ Attack Simulation Summary</h3>
+                    <div class="content-area" id="attack-area">
+                        <div class="attack-summary-grid" id="attack-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h3 class="section-title">💡 Suggestions</h3>
+                <div class="content-area" id="suggestion-area">
+                    <div class="suggestion-list" id="suggestion-list"></div>
+                </div>
+            </div>
+
+
+
+            <!-- SUCCESS SECTION (for already strong passwords) -->
+            <div id="success-section" style="display: none; margin-top: 30px; padding: 25px; border: 2px solid var(--color-very-strong); border-radius: 12px; background: rgba(34, 197, 94, 0.05);">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
+                    <div style="font-size: 2.5rem;">✅</div>
+                    <div>
+                        <h2 style="color: var(--color-very-strong); font-size: 1.5rem; margin: 0;">Excellent Password!</h2>
+                        <p style="color: var(--text-light); margin: 5px 0 0 0;">Your password is already very strong. No improvement needed!</p>
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                    <div style="margin-bottom: 5px;"><span style="color: var(--text-muted);">Score:</span> <strong id="succ-score" style="color: var(--text-light);"></strong></div>
+                    <div><span style="color: var(--text-muted);">Time to crack:</span> <strong id="succ-time" style="color: var(--color-very-strong);"></strong></div>
+                </div>
+                <div style="margin-top: 15px; text-align: center; color: var(--accent-green); font-weight: bold;">
+                    Keep this password safe!
+                </div>
+            </div>
+
+            <button id="btn-improve">⚡ Show Me Strong Version</button>
+
+            <!-- SIDE BY SIDE COMPARISON AREA -->
+            <div id="comparison-section">
+                <div class="comp-banner">
+                    <h2 id="imp-msg" style="color: var(--accent-green); margin-bottom: 5px;">Analyzing improvements...</h2>
+                    <p style="color: var(--text-muted);">We've analyzed your password and generated a bulletproof alternative.</p>
+                </div>
+
+                <div class="comp-grid">
+                    <!-- Original -->
+                    <div class="comp-card original">
+                        <div class="comp-card-title">
+                            <span>Your Base Password</span>
+                            <span style="color: var(--color-weak);">WEAK</span>
+                        </div>
+                        <div class="comp-pwd-large" id="comp-orig-pwd">****</div>
+                        <div class="comp-stat-row"><span>Security Score:</span><span id="comp-orig-score" class="comp-stat-val">-</span></div>
+                        <div class="comp-stat-row"><span>Strength:</span><span id="comp-orig-str" class="comp-stat-val" style="color: var(--color-weak);">-</span></div>
+                        <div class="comp-stat-row"><span>Time to Crack:</span><span id="comp-orig-time" class="comp-stat-val">-</span></div>
+                        <div class="comp-stat-row"><span>Complexity:</span><span id="comp-orig-ent" class="comp-stat-val">-</span></div>
+                        <div style="margin-top: 15px; font-size: 0.85rem; color: var(--text-muted);">Detected Risks:</div>
+                        <ul id="comp-orig-vulns" style="list-style: none; margin-top: 5px;"></ul>
+                    </div>
+
+                    <!-- Improved -->
+                    <div class="comp-card improved">
+                        <div class="comp-card-title">
+                            <span>Improved Version</span>
+                            <span style="color: var(--color-very-strong);">SECURE</span>
+                        </div>
+                        <div class="comp-pwd-large" id="comp-imp-pwd" style="color: var(--accent-green);">****</div>
+                        <div class="comp-stat-row"><span>Security Score:</span><span id="comp-imp-score" class="comp-stat-val">-</span></div>
+                        <div class="comp-stat-row"><span>Strength:</span><span id="comp-imp-str" class="comp-stat-val" style="color: var(--color-very-strong);">-</span></div>
+                        <div class="comp-stat-row"><span>Time to Crack:</span><span id="comp-imp-time" class="comp-stat-val" style="color: var(--color-very-strong);">-</span></div>
+                        <div class="comp-stat-row"><span>Complexity:</span><span id="comp-imp-ent" class="comp-stat-val">-</span></div>
+                        <div class="comp-actions">
+                            <button id="btn-use-pwd" class="btn btn-primary" style="flex: 1;">Use This One</button>
+                            <button id="comp-copy-btn" class="btn" style="padding: 10px;">📋</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Score Visual Comparison -->
+                <div class="comp-bar-container">
+                    <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem;">Visual Security Comparison</div>
+                    <div class="comp-bar-wrapper">
+                        <div id="bar-orig" class="comp-bar-fill" style="background: var(--color-weak);">ORIGINAL: <span id="bar-orig-val">0</span>%</div>
+                    </div>
+                    <div class="comp-bar-wrapper">
+                        <div id="bar-imp" class="comp-bar-fill" style="background: var(--color-very-strong);">IMPROVED: <span id="bar-imp-val">0</span>%</div>
+                    </div>
+                </div>
+
+                <!-- Health metrics -->
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <div class="strength-badge" id="imp-score" style="background: rgba(34, 197, 94, 0.1); color: var(--color-very-strong);">+0 Points</div>
+                    <div class="strength-badge" id="imp-entropy" style="background: rgba(59, 130, 246, 0.1); color: var(--color-info);">+0 Bits</div>
+                    <div class="strength-badge" id="imp-time" style="background: rgba(234, 179, 8, 0.1); color: var(--color-strong);">Faster Cleanup</div>
+                </div>
+
+                <!-- Attack Grid -->
+                <div class="attack-comp-grid" id="comp-attack-grid"></div>
+
+                <div style="text-align: center;">
+                    <button id="btn-regen-pwd" class="btn" style="background: transparent; border: 1px solid var(--border-color);">🔄 Generate Different Strong Version</button>
+                </div>
+
+
+            </div>
+        </div>
+    
+        </div> <!-- End Tab 1 Content -->
+
+        <!-- TAB 2 CONTENT -->
+        <div id="tab2-content" class="tab-pane">
+            <div class="manual-comp-inputs">
+                <div class="comp-person-box">
+                    <input type="text" id="p1-name" class="name-input" value="Password 1" autocomplete="off">
+                    <label style="display:none;" for="p1-pwd">Password 1</label>
+                    <div class="comp-pwd-input-wrapper">
+                        <input type="password" id="p1-pwd" placeholder="Enter first password..." style="width: 100%; padding: 12px 70px 12px 15px; font-family: monospace; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-light); outline: none;">
+                        <div class="mini-strength-dot" id="p1-dot"></div>
+                        <button class="icon-btn" id="p1-toggle" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);" title="Show/Hide">👁️</button>
+                    </div>
+                </div>
+                
+                <div class="swap-btn-container">
+                    <button class="swap-btn" id="swap-pwds" title="Swap Passwords">⇄</button>
+                </div>
+
+                <div class="comp-person-box">
+                    <input type="text" id="p2-name" class="name-input" value="Password 2" autocomplete="off">
+                    <label style="display:none;" for="p2-pwd">Password 2</label>
+                    <div class="comp-pwd-input-wrapper">
+                        <input type="password" id="p2-pwd" placeholder="Enter second password..." style="width: 100%; padding: 12px 70px 12px 15px; font-family: monospace; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-light); outline: none;">
+                        <div class="mini-strength-dot" id="p2-dot"></div>
+                        <button class="icon-btn" id="p2-toggle" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%);" title="Show/Hide">👁️</button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">🔒 Passwords are never stored or logged</div>
+                <button class="btn btn-primary" id="btn-do-compare" style="padding: 12px 30px; font-size: 1.1rem; width: 100%; max-width: 400px;" disabled>⚔️ Compare Passwords</button>
+            </div>
+
+            <div id="tab2-results" style="display: none; padding-top: 20px; border-top: 1px solid var(--border-color); animation: fadeIn 0.5s ease;">
+                <div class="winner-banner" id="t2-winner-banner"></div>
+                
+                <div class="comparison-cards-container" style="margin-bottom: 20px;">
+                    <div class="comp2-card" id="t2-card1">
+                        <div class="comparison-header" id="t2-h1">PERSON 1</div>
+                        <div class="comp-pwd-display" id="t2-pwd1" style="color:var(--text-muted)">****</div>
+                        <div class="comp-stats">
+                            <div class="comp-stat-row"><span>Score</span><span class="comp-score" id="t2-score1">-</span></div>
+                            <div class="comp-stat-row"><span>Strength</span><span class="strength-badge" id="t2-str1">-</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="comp2-card" id="t2-card2">
+                        <div class="comparison-header" id="t2-h2">PERSON 2</div>
+                        <div class="comp-pwd-display" id="t2-pwd2" style="color:var(--text-muted)">****</div>
+                        <div class="comp-stats">
+                            <div class="comp-stat-row"><span>Score</span><span class="comp-score" id="t2-score2">-</span></div>
+                            <div class="comp-stat-row"><span>Strength</span><span class="strength-badge" id="t2-str2">-</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="score-comp-bars" style="margin-bottom: 25px;">
+                    <div class="score-comp-row">
+                        <div class="score-comp-label" id="t2-lbl1">Person 1</div>
+                        <div class="score-comp-bar-container">
+                            <div class="score-comp-bar" id="t2-bar1" style="background-color: var(--border-color)"></div>
+                        </div>
+                        <div class="score-comp-value" id="t2-barval1">0</div>
+                    </div>
+                    <div class="score-comp-row">
+                        <div class="score-comp-label" id="t2-lbl2">Person 2</div>
+                        <div class="score-comp-bar-container">
+                            <div class="score-comp-bar" id="t2-bar2" style="background-color: var(--border-color)"></div>
+                        </div>
+                        <div class="score-comp-value" id="t2-barval2">0</div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">📊 Detailed Comparison</h3>
+                    <table class="comp2-table" id="t2-stats-table">
+                        <!-- Populated by JS -->
+                    </table>
+                </div>
+
+                <div class="section-card" style="margin-top: 20px;">
+                    <h3 class="section-title">🛡️ Attack Simulation</h3>
+                    <table class="comp2-table" id="t2-attack-table">
+                        <!-- Populated by JS -->
+                    </table>
+                    <div style="display: flex; justify-content: space-around; margin-top: 15px; color: var(--text-muted); font-size: 0.9rem;" id="t2-attack-counts"></div>
+                </div>
+
+                <div class="section-card" id="t2-suggestions-container" style="margin-top: 20px;">
+                    <h3 class="section-title" id="t2-sugg-title">💡 Suggestions</h3>
+                    <div class="suggestion-list" id="t2-sugg-list"></div>
+                </div>
+
+                <div class="comp-actions" style="margin-top: 30px;">
+                    <button class="btn btn-primary" id="btn-t2-share">📋 Copy Result Summary</button>
+                    <button class="btn" id="btn-t2-reset">🔄 Compare Again</button>
+                </div>
+
+
+            </div>
+
+        </div> <!-- End Tab 2 -->
+
+    </div>
+
+    <script>
+
+        // TAB SWITCHING LOGIC
+        const tabBtn1 = document.getElementById('tab-btn-1');
+        const tabBtn2 = document.getElementById('tab-btn-2');
+        const tab1Content = document.getElementById('tab1-content');
+        const tab2Content = document.getElementById('tab2-content');
+
+        tabBtn1.addEventListener('click', () => {
+            tabBtn1.classList.add('active');
+            tabBtn2.classList.remove('active');
+            tab1Content.classList.add('active');
+            tab2Content.classList.remove('active');
+        });
+
+        tabBtn2.addEventListener('click', () => {
+            tabBtn2.classList.add('active');
+            tabBtn1.classList.remove('active');
+            tab2Content.classList.add('active');
+            tab1Content.classList.remove('active');
+        });
+
+        // TAB 2: MANUAL COMPARISON LOGIC
+        const COMPARE_URL = 'http://127.0.0.1:5001/compare';
+        
+        const p1Name = document.getElementById('p1-name');
+        const p1Pwd = document.getElementById('p1-pwd');
+        const p1Toggle = document.getElementById('p1-toggle');
+        const p1Dot = document.getElementById('p1-dot');
+        
+        const p2Name = document.getElementById('p2-name');
+        const p2Pwd = document.getElementById('p2-pwd');
+        const p2Toggle = document.getElementById('p2-toggle');
+        const p2Dot = document.getElementById('p2-dot');
+        
+        const btnDoCompare = document.getElementById('btn-do-compare');
+        const swapPwds = document.getElementById('swap-pwds');
+        const tab2Results = document.getElementById('tab2-results');
+
+        // Toggles
+        p1Toggle.addEventListener('click', () => {
+            p1Pwd.type = p1Pwd.type === 'password' ? 'text' : 'password';
+        });
+        p2Toggle.addEventListener('click', () => {
+            p2Pwd.type = p2Pwd.type === 'password' ? 'text' : 'password';
+        });
+
+        function analyzeMiniStrength(pwd) {
+            if (!pwd) return 'var(--border-color)';
+            let score = 0;
+            if (pwd.length > 5) score++;
+            if (pwd.length > 10) score++;
+            if (/[A-Z]/.test(pwd)) score++;
+            if (/[0-9]/.test(pwd)) score++;
+            if (/[^A-Za-z0-9]/.test(pwd)) score++;
+
+            if (score <= 2) return 'var(--color-weak)';
+            if (score === 3) return 'var(--color-moderate)';
+            if (score === 4) return 'var(--color-strong)';
+            return 'var(--color-very-strong)';
+        }
+
+        const handleTyping = () => {
+            p1Dot.style.background = analyzeMiniStrength(p1Pwd.value);
+            p2Dot.style.background = analyzeMiniStrength(p2Pwd.value);
+            
+            if (p1Pwd.value && p2Pwd.value) {
+                btnDoCompare.disabled = false;
+            } else {
+                btnDoCompare.disabled = true;
+            }
+        };
+
+        p1Pwd.addEventListener('input', handleTyping);
+        p2Pwd.addEventListener('input', handleTyping);
+
+        swapPwds.addEventListener('click', () => {
+            const tempVal = p1Pwd.value;
+            p1Pwd.value = p2Pwd.value;
+            p2Pwd.value = tempVal;
+            handleTyping();
+            
+            // Re-run if results are visible
+            if (tab2Results.style.display === 'block') {
+                btnDoCompare.click();
+            }
+        });
+
+        let lastCompareResult = null;
+
+        btnDoCompare.addEventListener('click', async () => {
+            if (!p1Pwd.value || !p2Pwd.value) return;
+            
+            btnDoCompare.textContent = "⚔️ Comparing...";
+            btnDoCompare.disabled = true;
+            
+            try {
+                const response = await fetch(COMPARE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        password1: p1Pwd.value,
+                        password2: p2Pwd.value,
+                        label1: p1Name.value || "Password 1",
+                        label2: p2Name.value || "Password 2"
+                    })
+                });
+
+                if (!response.ok) throw new Error("Comparison failed");
+                const data = await response.json();
+                lastCompareResult = data;
+                renderTab2Results(data);
+                
+                tab2Results.style.display = 'block';
+                tab2Results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (err) {
+                console.error(err);
+                alert("Failed to perform comparison.");
+            } finally {
+                btnDoCompare.textContent = "⚔️ Compare Passwords";
+                btnDoCompare.disabled = false;
+            }
+        });
+
+        function renderTab2Results(data) {
+            const p1 = data.password1;
+            const p2 = data.password2;
+            const comp = data.comparison;
+            const win = data.winner;
+            
+            // Mask Passwords
+            const mask = (p) => p.length <= 5 ? p.substring(0, 1) + "****" : p.substring(0, 5) + "****";
+            
+            document.getElementById('t2-h1').textContent = p1.label;
+            document.getElementById('t2-h2').textContent = p2.label;
+            document.getElementById('t2-pwd1').textContent = mask(p1.password_actual);
+            document.getElementById('t2-pwd2').textContent = mask(p2.password_actual);
+            
+            const card1 = document.getElementById('t2-card1');
+            const card2 = document.getElementById('t2-card2');
+            const banner = document.getElementById('t2-winner-banner');
+            
+            card1.className = 'comp2-card';
+            card2.className = 'comp2-card';
+            banner.className = 'winner-banner';
+            
+            if (comp.category === 'tie') {
+                banner.classList.add('tie');
+                banner.textContent = "🤝 Both passwords are equally strong!";
+                card1.classList.add('tie');
+                card2.classList.add('tie');
+            } else {
+                banner.style.background = 'rgba(34, 197, 94, 0.15)';
+                banner.style.border = '2px solid var(--color-very-strong)';
+                banner.style.color = 'var(--color-very-strong)';
+                banner.textContent = `🏆 ${win.label} has the stronger password!`;
+                
+                if (win.password_number === 1) {
+                    document.getElementById('t2-h1').textContent = `🏆 ${p1.label}`;
+                    card1.classList.add('winner');
+                    card2.classList.add('loser');
+                } else {
+                    document.getElementById('t2-h2').textContent = `🏆 ${p2.label}`;
+                    card2.classList.add('winner');
+                    card1.classList.add('loser');
+                }
+            }
+            
+            const getColor = (s) => {
+                if(s > 80) return 'var(--color-very-strong)';
+                if(s > 60) return 'var(--color-strong)';
+                if(s > 30) return 'var(--color-moderate)';
+                return 'var(--color-weak)';
+            };
+
+            document.getElementById('t2-score1').textContent = `${p1.score}/100`;
+            document.getElementById('t2-score1').style.color = getColor(p1.score);
+            document.getElementById('t2-str1').textContent = p1.strength_level;
+            document.getElementById('t2-str1').style.color = getColor(p1.score);
+            document.getElementById('t2-str1').style.background = getColor(p1.score).replace(')', ', 0.2)').replace('var(--', '').replace('-)', '0.2)'); // cheap hack, fallback below
+            
+            document.getElementById('t2-score2').textContent = `${p2.score}/100`;
+            document.getElementById('t2-score2').style.color = getColor(p2.score);
+            document.getElementById('t2-str2').textContent = p2.strength_level;
+            document.getElementById('t2-str2').style.color = getColor(p2.score);
+            
+            document.getElementById('t2-lbl1').textContent = p1.label;
+            document.getElementById('t2-lbl2').textContent = p2.label;
+            document.getElementById('t2-barval1').textContent = `${p1.score}%`;
+            document.getElementById('t2-barval2').textContent = `${p2.score}%`;
+            
+            setTimeout(() => {
+                document.getElementById('t2-bar1').style.width = `${p1.score}%`;
+                document.getElementById('t2-bar1').style.background = getColor(p1.score);
+                document.getElementById('t2-bar2').style.width = `${p2.score}%`;
+                document.getElementById('t2-bar2').style.background = getColor(p2.score);
+            }, 100);
+
+            // Detailed Stats Table
+            const tBodyHtml = `
+                <tr>
+                    <td>Score</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${p1.score}/100</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${p2.score}/100</td>
+                </tr>
+                <tr>
+                    <td>Strength</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${p1.strength_level}</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${p2.strength_level}</td>
+                </tr>
+                <tr>
+                    <td>Crack Time</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${p1.estimated_crack_time_readable}</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${p2.estimated_crack_time_readable}</td>
+                </tr>
+                <tr>
+                    <td>Entropy</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${Math.round(p1.entropy_bits)} bits</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${Math.round(p2.entropy_bits)} bits</td>
+                </tr>
+                <tr>
+                    <td>Length</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${p1.password_length} chars</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${p2.password_length} chars</td>
+                </tr>
+                <tr>
+                    <td>Char Set</td>
+                    <td class="${win?.password_number===1?'winner-cell':''}">${p1.character_set_size}</td>
+                    <td class="${win?.password_number===2?'winner-cell':''}">${p2.character_set_size}</td>
+                </tr>
+            `;
+            document.getElementById('t2-stats-table').innerHTML = tBodyHtml;
+
+            // Attack Simulation Table
+            const attackMap = {
+                'dictionary': 'Dictionary', 'hybrid': 'Hybrid', 'keyboard': 'Keyboard',
+                'sequential': 'Sequential', 'reverse': 'Reverse Seq', 'repeated': 'Repeated Char',
+                'leetspeak': 'Leetspeak', 'date_based': 'Date Pattern', 'repeated_block': 'Repeated Block'
+            };
+            
+            let aBodyHtml = '';
+            let a1Safe = 0, a2Safe = 0;
+            
+            for (const key in attackMap) {
+                const name = attackMap[key];
+                const v1 = p1.attack_summary[key];
+                const v2 = p2.attack_summary[key];
+                
+                if(!v1) a1Safe++;
+                if(!v2) a2Safe++;
+                
+                aBodyHtml += `
+                <tr>
+                    <td>${name}</td>
+                    <td style="color:${v1? 'var(--color-weak)':'var(--color-very-strong)'}">${v1?'❌ VULN':'✅ Safe'}</td>
+                    <td style="color:${v2? 'var(--color-weak)':'var(--color-very-strong)'}">${v2?'❌ VULN':'✅ Safe'}</td>
+                </tr>`;
+            }
+            document.getElementById('t2-attack-table').innerHTML = aBodyHtml;
+            document.getElementById('t2-attack-counts').innerHTML = `
+                <div>${p1.label}: ${a1Safe}/9 attacks safe</div>
+                <div>${p2.label}: ${a2Safe}/9 attacks safe</div>
+            `;
+            
+            // Suggestions
+            document.getElementById('t2-suggestions-container').style.display = 'block';
+            if (comp.category === 'tie' || !win) {
+                document.getElementById('t2-suggestions-container').style.display = 'none';
+            } else {
+                const loser = win.password_number === 1 ? p2 : p1;
+                document.getElementById('t2-sugg-title').textContent = `💡 Suggestions for ${loser.label}`;
+                let suggHTML = '';
+                loser.suggestions.forEach(s => {
+                    suggHTML += `<div class="suggestion-card"><span class="suggestion-icon">💡</span><span>${s}</span></div>`;
+                });
+                document.getElementById('t2-sugg-list').innerHTML = suggHTML;
+            }
+        }
+
+        document.getElementById('btn-t2-reset').addEventListener('click', () => {
+            p1Pwd.value = '';
+            p2Pwd.value = '';
+            handleTyping();
+            tab2Results.style.display = 'none';
+        });
+
+        document.getElementById('btn-t2-share').addEventListener('click', () => {
+            if (!lastCompareResult) return;
+            const win = lastCompareResult.winner;
+            const comp = lastCompareResult.comparison;
+            const p1 = lastCompareResult.password1;
+            const p2 = lastCompareResult.password2;
+            
+            let text = `Password Comparison Result:\n`;
+            if (comp.category === 'tie') {
+                text += `Tie! Both scored ${p1.score}/100.`;
+            } else {
+                const loser = win.password_number === 1 ? p2 : p1;
+                const winnerObj = win.password_number === 1 ? p1 : p2;
+                text += `${win.label} wins with score ${winnerObj.score}/100\n`;
+                text += `vs ${loser.label} score ${loser.score}/100\n`;
+                text += `${win.label} password is ${comp.verdict}!`;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('btn-t2-share');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                setTimeout(() => btn.innerHTML = orig, 2000);
+            });
+        });
+
+        // --- APP CONFIGURATION ---
+        const API_URL = 'http://localhost:5001/analyze';
+        const HEALTH_URL = 'http://localhost:5001/health';
+
+        // DOM Elements
+        const pwdInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('toggle-pwd');
+        const clearBtn = document.getElementById('clear-pwd');
+        const generateBtn = document.getElementById('generate-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const resultsArea = document.getElementById('results-area');
+        const statusText = document.getElementById('status-text');
+        const healthBanner = document.getElementById('health-banner');
+
+        // Output Elements
+        const meter = document.getElementById('meter');
+        const strengthBadge = document.getElementById('strength-badge');
+        const scoreVal = document.getElementById('score-val');
+        const crackTime = document.getElementById('crack-time');
+        const entropy = document.getElementById('entropy');
+        const pwdLength = document.getElementById('pwd-length');
+        const charSet = document.getElementById('char-set');
+
+        // Panel Content Containers
+        const vulnArea = document.getElementById('vuln-area');
+        const attackArea = document.getElementById('attack-area');
+        const suggArea = document.getElementById('suggestion-area');
+
+        let debounceTimer;
+        let currentAbortController = null;
+
+        // --- INITIALIZATION & HEALTH CHECK ---
+        window.addEventListener('DOMContentLoaded', async () => {
+            resetUI();
+            healthBanner.style.display = 'block';
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s health check timeout
+
+                const req = await fetch(HEALTH_URL, { signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                if (req.ok) {
+                    healthBanner.className = 'health-success';
+                    healthBanner.textContent = '✅ Backend connection established!';
+                    setTimeout(() => {
+                        healthBanner.style.opacity = '0';
+                        setTimeout(() => healthBanner.style.display = 'none', 500);
+                    }, 3000);
+                } else {
+                    throw new Error("Bad status");
+                }
+            } catch (err) {
+                healthBanner.className = 'health-error';
+                healthBanner.textContent = '❌ Cannot reach backend — start Flask with: python app.py';
+                healthBanner.style.opacity = '1';
+            }
+        });
+
+        // --- EVENT LISTENERS ---
+        pwdInput.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const val = pwdInput.value;
+            if (!val) {
+                resetUI();
+                return;
+            }
+
+            statusText.textContent = "Analyzing...";
+            resultsArea.classList.add('loading-state');
+
+            debounceTimer = setTimeout(() => analyzePassword(val), 500);
+        });
+
+        toggleBtn.addEventListener('click', () => {
+            const type = pwdInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            pwdInput.setAttribute('type', type);
+            toggleBtn.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        clearBtn.addEventListener('click', () => {
+            pwdInput.value = '';
+            resetUI();
+            pwdInput.focus();
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (!pwdInput.value) return;
+            navigator.clipboard.writeText(pwdInput.value).then(() => {
+                const originalText = copyBtn.innerHTML;
+                copyBtn.innerHTML = '✅ Copied!';
+                setTimeout(() => { copyBtn.innerHTML = originalText; }, 2000);
+            });
+        });
+
+        generateBtn.addEventListener('click', () => {
+            const generated = generateStrongPassword(16);
+            pwdInput.value = generated;
+            pwdInput.dispatchEvent(new Event('input'));
+        });
+
+        // --- CORE LOGIC ---
+        async function analyzePassword(password) {
+            if (currentAbortController) {
+                currentAbortController.abort(); // Cancel pending previous request
+            }
+
+            currentAbortController = new AbortController();
+            const timeoutId = setTimeout(() => currentAbortController.abort(), 8000); // 8-second timeout
+
+            try {
+                renderLoadingState();
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password }),
+                    signal: currentAbortController.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                const textResponse = await response.text();
+                let data = {};
+                try { data = JSON.parse(textResponse); } catch (e) { }
+
+                if (!response.ok) {
+                    // Determine if it was bad input (400) or server error (500)
+                    let errMsg = `Server Error (${response.status})`;
+                    if (data && data.error) errMsg += `: ${data.error}`;
+                    if (data && data.details) errMsg += ` - ${data.details.join(', ')}`;
+                    throw new Error(errMsg);
+                }
+
+                updateUI(data);
+            } catch (error) {
+                console.error("Analysis Error:", error);
+
+                // Distinguish network failures & timeouts from API response errors
+                let uiErrorMsg = error.message;
+                if (error.name === 'AbortError') {
+                    uiErrorMsg = "Request Timed Out (8s). Backend may be unresponsive.";
+                } else if (error.message === "Failed to fetch" || error.message === "NetworkError when attempting to fetch resource.") {
+                    uiErrorMsg = "Network Error: FlaskBackend not running. Start with: python app.py";
+                }
+
+                renderErrorState(uiErrorMsg);
+            } finally {
+                resultsArea.classList.remove('loading-state');
+                currentAbortController = null;
+            }
+        }
+
+        function resetUI() {
+            resultsArea.classList.remove('loading-state');
+            statusText.textContent = "Awaiting input...";
+            statusText.style.color = "var(--text-muted)";
+
+            scoreVal.textContent = "-";
+            scoreVal.style.color = "var(--text-muted)";
+            meter.style.width = `0%`;
+            meter.style.backgroundColor = "var(--border-color)";
+
+            strengthBadge.textContent = "-";
+            strengthBadge.style.color = "var(--text-muted)";
+            strengthBadge.style.backgroundColor = "rgba(255,255,255,0.05)";
+
+            crackTime.textContent = "-";
+            entropy.textContent = "-";
+            pwdLength.textContent = "-";
+            charSet.textContent = "-";
+            if (btnImprove) btnImprove.style.display = 'none';
+            if (compSection) compSection.classList.remove('show');
+
+            const awaitHTML = `<div class="form-error" style="background:transparent; border:none; color:var(--text-muted)">Waiting for input...</div>`;
+            vulnArea.innerHTML = awaitHTML;
+            attackArea.innerHTML = awaitHTML;
+            suggArea.innerHTML = awaitHTML;
+        }
+
+        function renderLoadingState() {
+            const loadingHTML = `<div class="form-error" style="background:transparent; border:none; color:var(--text-muted)">Loading data...</div>`;
+            vulnArea.innerHTML = loadingHTML;
+            attackArea.innerHTML = loadingHTML;
+            suggArea.innerHTML = loadingHTML;
+        }
+
+        function renderErrorState(message) {
+            statusText.textContent = "Analysis Failed";
+            statusText.style.color = "var(--color-weak)";
+
+            const errorHTML = `<div class="form-error">${message}</div>`;
+            vulnArea.innerHTML = errorHTML;
+            attackArea.innerHTML = errorHTML;
+            suggArea.innerHTML = errorHTML;
+        }
+
+        function updateUI(data) {
+            // Null-safe fallbacks
+            const score = data.score != null ? data.score : 0;
+            const strLvl = data.strength_level || "Unknown";
+            
+            const successSection = document.getElementById('success-section');
+            if (successSection) successSection.style.display = 'none';
+
+            // Toggle "Show Me Strong Version" button based on score
+            if (btnImprove && successSection) {
+                if (score > 80) {
+                    btnImprove.style.display = 'none';
+                    successSection.style.display = 'block';
+                    document.getElementById('succ-score').textContent = `${score}/100`;
+                    document.getElementById('succ-time').textContent = data.estimated_crack_time_readable || "-";
+                    statusText.textContent = "Analysis complete";
+                } else if (score > 60) {
+                    btnImprove.style.display = 'block';
+                    btnImprove.style.background = 'linear-gradient(135deg, #facc15, #ca8a04)';
+                    btnImprove.style.animation = 'none';
+                    btnImprove.textContent = '💡 See If We Can Improve This';
+                    statusText.textContent = "Analysis complete";
+                } else {
+                    btnImprove.style.display = 'block';
+                    btnImprove.style.background = 'linear-gradient(135deg, var(--accent-green), #22c55e)';
+                    btnImprove.style.animation = 'pulse-green 2s infinite';
+                    btnImprove.textContent = '⚡ Show Me Strong Version';
+                    statusText.textContent = "Analysis complete";
+                }
+            }
+            if (compSection) compSection.classList.remove('show');
+
+            statusText.style.color = "var(--text-muted)";
+
+            // Update Meter and Score
+            scoreVal.textContent = score;
+            scoreVal.style.color = "inherit";
+            meter.style.width = `${score}%`;
+
+            let color = "var(--color-weak)";
+            let badgeBg = "rgba(239, 68, 68, 0.2)";
+            if (score > 80) { color = "var(--color-very-strong)"; badgeBg = "rgba(34, 197, 94, 0.2)"; }
+            else if (score > 60) { color = "var(--color-strong)"; badgeBg = "rgba(234, 179, 8, 0.2)"; }
+            else if (score > 30) { color = "var(--color-moderate)"; badgeBg = "rgba(249, 115, 22, 0.2)"; }
+
+            meter.style.backgroundColor = color;
+            strengthBadge.textContent = strLvl;
+            strengthBadge.style.color = color;
+            strengthBadge.style.backgroundColor = badgeBg;
+
+            // Stats
+            crackTime.textContent = data.estimated_crack_time_readable || "-";
+            entropy.textContent = data.entropy_bits != null ? `${Math.round(data.entropy_bits)} bits` : "-";
+            pwdLength.textContent = data.password_length != null ? data.password_length : "-";
+            charSet.textContent = data.character_set_size != null ? data.character_set_size : "-";
+
+            // Vulnerabilities
+            let vulnHTML = `<ul class="vuln-list">`;
+            const vulns = Array.isArray(data.vulnerability_types) ? data.vulnerability_types : [];
+            if (!vulns || vulns.length === 0 || vulns[0].includes("No specific attack vulnerabilities")) {
+                vulnHTML += `<li class="vuln-item safe">✅ No vulnerabilities detected. Excellent!</li>`;
+            } else {
+                vulns.forEach(v => { vulnHTML += `<li class="vuln-item danger">❌ <span>${v}</span></li>`; });
+            }
+            vulnHTML += `</ul>`;
+
+            // Final fallback if parsing completely failed
+            if (!vulns || vulns.length === 0 && score < 85) {
+                vulnHTML = `<ul class="vuln-list"><li class="vuln-item danger">❌ <span>Password lacks sufficient complexity to be considered Very Strong.</span></li></ul>`;
+            }
+            vulnArea.innerHTML = vulnHTML;
+
+            // Attack Summary Grid
+            const attackMap = {
+                'dictionary': 'Dictionary', 'hybrid': 'Hybrid', 'keyboard': 'Keyboard',
+                'sequential': 'Sequential', 'reverse': 'Reverse Seq', 'repeated': 'Repeated Char',
+                'leetspeak': 'Leetspeak', 'date_based': 'Date Pattern', 'repeated_block': 'Repeated Block'
+            };
+
+            let gridHTML = `<div class="attack-summary-grid">`;
+            const attacks = typeof data.attack_summary === 'object' && data.attack_summary !== null ? data.attack_summary : {};
+            if (Object.keys(attacks).length === 0) {
+                gridHTML += `<div class="form-error" style="background:transparent; border:none; color:var(--text-muted)">No attack data returned.</div>`;
+            } else {
+                for (const [key, isVuln] of Object.entries(attacks)) {
+                    const name = attackMap[key] || key;
+                    const icon = isVuln ? '❌' : '✅';
+                    const cls = isVuln ? 'attack-vuln' : 'attack-safe';
+                    gridHTML += `
+                    <div class="attack-item">
+                        <span>${name}</span>
+                        <span class="${cls}">${icon}</span>
+                    </div>
+                `;
+                }
+            }
+            gridHTML += `</div>`;
+            attackArea.innerHTML = gridHTML;
+
+            // Suggestions
+            let suggHTML = `<div class="suggestion-list">`;
+            const suggs = Array.isArray(data.suggestions) ? data.suggestions : [];
+            if (suggs.length === 0) {
+                suggHTML += `<div class="form-error" style="background:transparent; border:none; color:var(--text-muted)">No suggestions available.</div>`;
+            } else {
+                suggs.forEach(s => {
+                    suggHTML += `
+                    <div class="suggestion-card">
+                        <span class="suggestion-icon">💡</span>
+                        <span>${s}</span>
+                    </div>
+                `;
+                });
+            }
+            suggHTML += `</div>`;
+            suggArea.innerHTML = suggHTML;
+        }
+
+        // Helper: Guarantee uppercase, lowercase, number, and special character
+        function generateStrongPassword(length) {
+            const lower = "abcdefghijklmnopqrstuvwxyz";
+            const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            const num = "0123456789";
+            const special = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+            const all = lower + upper + num + special;
+
+            let pwd = [
+                lower[Math.floor(Math.random() * lower.length)],
+                upper[Math.floor(Math.random() * upper.length)],
+                num[Math.floor(Math.random() * num.length)],
+                special[Math.floor(Math.random() * special.length)]
+            ];
+
+            for (let i = 4; i < length; i++) {
+                pwd.push(all[Math.floor(Math.random() * all.length)]);
+            }
+
+            // Shuffle the array guaranteeing mixed positions
+            for (let i = pwd.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pwd[i], pwd[j]] = [pwd[j], pwd[i]];
+            }
+
+            return pwd.join('');
+        }
+
+        // --- COMPARISON LOGIC ---
+        const IMPROVE_URL = 'http://127.0.0.1:5001/improve';
+        const btnImprove = document.getElementById('btn-improve');
+        const compSection = document.getElementById('comparison-section');
+        const btnUsePwd = document.getElementById('btn-use-pwd');
+        const btnRegenPwd = document.getElementById('btn-regen-pwd');
+        const compCopyBtn = document.getElementById('comp-copy-btn');
+        let currentImprovedPwd = '';
+
+        if (btnImprove) {
+            btnImprove.addEventListener('click', () => { fetchImprove(); });
+        }
+        if (btnRegenPwd) {
+            btnRegenPwd.addEventListener('click', () => { fetchImprove(); });
+        }
+        if (btnUsePwd) {
+            btnUsePwd.addEventListener('click', () => {
+                if (currentImprovedPwd) {
+                    pwdInput.value = currentImprovedPwd;
+                    compSection.classList.remove('show');
+                    btnImprove.style.display = 'block';
+                    pwdInput.dispatchEvent(new Event('input'));
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            });
+        }
+        if (compCopyBtn) {
+            compCopyBtn.addEventListener('click', () => {
+                if (currentImprovedPwd) {
+                    navigator.clipboard.writeText(currentImprovedPwd).then(() => {
+                        const orig = compCopyBtn.innerHTML;
+                        compCopyBtn.innerHTML = '✅';
+                        setTimeout(() => compCopyBtn.innerHTML = orig, 2000);
+                    });
+                }
+            });
+        }
+
+        async function fetchImprove() {
+            const pwd = pwdInput.value;
+            if (!pwd) return;
+
+            btnImprove.classList.add('loading');
+            btnImprove.textContent = 'Generating stronger version...';
+            
+            try {
+                const response = await fetch(IMPROVE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+
+                if (!response.ok) throw new Error('Improvement failed');
+                const data = await response.json();
+                renderComparison(data);
+                
+                compSection.classList.add('show');
+                btnImprove.style.display = 'none';
+                
+            } catch (error) {
+                console.error(error);
+                alert('Failed to generate improved password.');
+            } finally {
+                btnImprove.classList.remove('loading');
+                btnImprove.textContent = '⚡ Show Me Strong Version';
+            }
+        }
+
+        function maskPassword(pwd) {
+            if (!pwd) return '';
+            if (pwd.length <= 4) return pwd[0] + '****';
+            return pwd.substring(0, 4) + '****';
+        }
+
+        function renderComparison(data) {
+            const orig = data.original;
+            const imp = data.improved;
+            const improvement = data.improvement;
+
+            currentImprovedPwd = imp.password;
+
+            document.getElementById('imp-msg').textContent = improvement.message;
+
+            let scoreMsg = "";
+            if (improvement.score_increase === 0) {
+                scoreMsg = "Equal strength!";
+            } else if (improvement.score_increase < 0) {
+                scoreMsg = "Your original password was actually stronger than the generated one!";
+            } else {
+                scoreMsg = `Score improved by +${improvement.score_increase} points!`;
+            }
+            document.getElementById('imp-score').textContent = scoreMsg;
+            
+            document.getElementById('imp-entropy').textContent = `Entropy increased by +${improvement.entropy_increase} bits`;
+
+            if (orig.estimated_crack_time_readable === imp.estimated_crack_time_readable) {
+                document.getElementById('imp-time').textContent = "Both passwords are equally hard to crack";
+            } else {
+                document.getElementById('imp-time').textContent = `Crack time: ${improvement.time_increase}`;
+            }
+
+            const barOrig = document.getElementById('bar-orig');
+            const barImp = document.getElementById('bar-imp');
+
+            if (orig.score === imp.score) {
+                barOrig.style.background = 'var(--color-info)';
+                barImp.style.background = 'var(--color-info)';
+            } else if (orig.score > imp.score) {
+                barOrig.style.background = 'var(--color-very-strong)';
+                barImp.style.background = 'var(--color-weak)';
+            } else {
+                barOrig.style.background = 'var(--color-weak)';
+                barImp.style.background = 'var(--color-very-strong)';
+            }
+
+            setTimeout(() => {
+                barOrig.style.width = `${orig.score}%`;
+                barImp.style.width = `${imp.score}%`;
+            }, 100);
+            
+            document.getElementById('bar-orig-val').textContent = orig.score;
+            document.getElementById('bar-imp-val').textContent = imp.score;
+
+            document.getElementById('comp-orig-pwd').textContent = maskPassword(orig.password);
+            document.getElementById('comp-orig-score').textContent = `${orig.score}/100`;
+            document.getElementById('comp-orig-str').textContent = orig.strength_level.toUpperCase();
+            document.getElementById('comp-orig-time').textContent = orig.estimated_crack_time_readable;
+            document.getElementById('comp-orig-ent').textContent = `${Math.round(orig.entropy_bits)} bits`;
+            
+            let origVulnsHtml = '';
+            const origV = orig.vulnerability_types || [];
+            origV.slice(0, 3).forEach(v => {
+                origVulnsHtml += `<li class="vuln-item danger" style="padding: 2px 0;">❌ <span>${v}</span></li>`;
+            });
+            document.getElementById('comp-orig-vulns').innerHTML = origVulnsHtml;
+
+            document.getElementById('comp-imp-pwd').textContent = imp.password;
+            document.getElementById('comp-imp-score').textContent = `${imp.score}/100`;
+            document.getElementById('comp-imp-str').textContent = imp.strength_level.toUpperCase();
+            document.getElementById('comp-imp-time').textContent = imp.estimated_crack_time_readable;
+            document.getElementById('comp-imp-ent').textContent = `${Math.round(imp.entropy_bits)} bits`;
+
+            const attackMap = {
+                'dictionary': 'Dictionary', 'hybrid': 'Hybrid', 'keyboard': 'Keyboard',
+                'sequential': 'Sequential', 'reverse': 'Reverse Seq', 'repeated': 'Repeated Char',
+                'leetspeak': 'Leetspeak', 'date_based': 'Date Pattern', 'repeated_block': 'Repeated Block'
+            };
+            let gridHtml = '';
+            for (const key in attackMap) {
+                const name = attackMap[key];
+                const oVuln = orig.attack_summary[key];
+                const iVuln = imp.attack_summary[key];
+                
+                gridHtml += `
+                <div class="attack-comp-col">
+                    <div style="font-weight: bold; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; margin-bottom: 5px;">${name}</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Original:</span>
+                        <span style="color: ${oVuln ? 'var(--color-weak)' : 'var(--color-very-strong)'}">${oVuln ? '❌ Vulnerable' : '✅ Safe'}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Improved:</span>
+                        <span style="color: ${iVuln ? 'var(--color-weak)' : 'var(--color-very-strong)'}">${iVuln ? '❌ Vulnerable' : '✅ Safe'}</span>
+                    </div>
+                </div>
+                `;
+            }
+            document.getElementById('comp-attack-grid').innerHTML = gridHtml;
+        }
+
+
+    </script>
+</body>
+
+</html>
